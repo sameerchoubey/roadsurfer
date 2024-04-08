@@ -1,0 +1,305 @@
+<template>
+	<div>
+		<div
+			class="flex justify-between mt-10"
+		>
+			<button
+				@click="handleNavigation('left')"
+				class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded p-2"
+			>
+				Previous
+			</button>
+
+			<select v-model="selected">
+				<option disabled value="">Please select one</option>
+				<option v-for="(item) in getDropdownList"> {{ item.name }}</option>
+			</select>
+
+			<button
+				@click="handleNavigation('right')"
+				class="bg-red-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded p-2"
+			>
+				Next
+			</button>
+		</div>
+
+		<p
+			v-if="weekBefore && weekAfter"
+			class="mt-5 text-center font-mono font-normal text-12 text-charcoal-gray leading-tight tracking-normal antialiased"
+		>
+			Showing data from {{ getWeekBefore }} to {{ getWeekAfter }}
+		</p>
+		<!-- <div
+			v-if="getWeekDifference"
+			class="w-full grid grid-cols-7 gap-4 mt-20"
+		>
+			<div
+				class="basic-grid flex justify-center p-2"
+				v-for="(item, key) in getCurrentWeek"
+				:key="key"
+			>
+				<p 
+					class="text-center font-mono font-normal text-12 text-charcoal-gray leading-tight tracking-normal antialiased"
+				>
+					{{ moment(item).format("MMM DD, YYYY") }}
+				</p>
+
+				<div v-if="selected">
+
+				</div>
+				<div v-else>
+
+				</div>
+				
+			</div>
+		</div> -->
+
+		<div
+			v-if="getWeekDifference"
+			class="w-full grid grid-cols-7 gap-4 mt-20"
+		>
+			<div
+				class="basic-grid p-2"
+				v-for="(item, key) in mapDatesWithData"
+				:key="key"
+			>
+				<p 
+					class="text-center font-mono font-normal text-12 text-charcoal-gray leading-tight tracking-normal antialiased"
+				>
+					{{ item.date}}
+				</p>
+
+				<div
+					v-if="item.bookings && item.bookings.length > 0"
+					class="mt-4"
+				>
+					<div
+						v-for="(item, key) in item.bookings"
+					>
+						<p
+							@click="viewDetails(item)"
+							class="cursor-pointer text-center font-mono font-normal text-12 text-blue-900 leading-tight tracking-normal antialiased"
+							:class="key > 0 ? 'mt-1' : ''"
+						>
+							{{ item.customerName }}
+						</p>
+					</div>
+				</div>
+				
+			</div>
+		</div>
+
+		<transition
+			name="slide-fade"
+			class="relative"     
+		>
+			<div
+				v-if="showDetailView && individualResponse"
+				class="basic-grid mx-auto mt-5 px-5"
+				style="width:720px; height:320px"
+			>
+				<div
+					@click="closeDetailView()"
+					class="self-center justify-end cursor-pointer pt-5 flex justify-end"
+				>
+					<svg width="14" height="14" fill="none" xmlns="http://www.w3.org/2000/svg">
+						<path d="M13 1 1 13M1 1l12 12" stroke="#767676" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+					</svg>
+			
+				</div>
+				<table class="mt-4">
+					<tr>
+						<th>Company</th>
+						<th>Contact</th>
+					</tr>
+					<tr>
+						<td>Booking ID</td>
+						<td>{{ individualResponse.id }}</td>
+					</tr>
+					<tr>
+						<td>Station ID</td>
+						<td>{{ individualResponse.pickupReturnStationId }}</td>
+					</tr>
+					<tr>
+						<td>Customer Name</td>
+						<td>{{ individualResponse.customerName }}</td>
+					</tr>
+					<tr>
+						<td>Start Date</td>
+						<td>{{ moment(individualResponse.startDate).format('MMM DD, YYYY') }}</td>
+					</tr>
+					<tr>
+						<td>End Date</td>
+						<td>{{ moment(individualResponse.endDate).format('MMM DD, YYYY') }}</td>
+					</tr>
+				</table>
+			</div>
+		</transition>
+	</div>
+</template>
+  
+<script>
+	import moment from 'moment';
+	import { mapState } from 'vuex';
+	
+	export default {
+		name: 'Week',
+		data () {
+			return {
+				moment: moment,
+				selected: 'Berlin',
+				currentWeek: '',
+				weekBefore: '',
+				weekAfter: '',
+				showDetailView: false
+			}
+		},
+		mounted(){
+			let dt = new Date();
+			// console.log('dt', dt.getDate())
+			// this.weekBefore = new Date('2021-07-11T00:00:00.402Z')
+			this.weekBefore = new moment('2021-03-13T00:00:00.402Z')
+			// console.log('weekBefore', this.weekBefore)
+			// this.weekBefore = moment(this.weekBefore).format('MMMM Do YYYY');
+			// this.weekAfter = new Date('2021-07-17T00:00:00.402Z')
+			this.weekAfter = new moment('2021-03-19T00:00:00.402Z')
+		},
+		computed: {
+			...mapState ({
+				apiResponse: state => state.api.apiResponse,
+				individualResponse: state => state.api.individualResponse,
+			}),
+			getCurrentWeek(data){
+				// let res = []
+				// let weekStart = new moment(this.weekBefore);
+				// weekStart.set(this.moment.toDate(this.weekBefore) - this.weekBefore.day());
+				// return Array.from( { length: 7 }, (v,k) => { 
+				// 	const dt = new moment(weekStart);
+				// 	dt.set(weekStart.getDate() + k);
+				// 	return dt;
+				// 	// return this.moment(dt).format("MMM DD, YYYY");
+				// })
+				let dateformat = "MMM DD, YYYY";
+				let date = this.weekBefore ? moment(this.weekBefore,dateformat) : moment(), weeklength=7, result=[];
+				date = date.startOf("week")
+				while(weeklength--)
+				{
+					result.push(date.format(dateformat));
+					date.add(1,"day")
+				}
+				return result;
+			},
+			getDropdownList(){
+				let res = []
+				if(this.apiResponse && this.apiResponse.length > 0){
+					this.apiResponse.forEach(item => {
+						if(item.bookings && item.bookings.length > 0) res.push({id: item.id, name: item.name})
+					})
+				}
+				return res
+			},
+			getDataForSelectedCity(){
+				let res
+				if(this.selected && this.apiResponse && this.apiResponse.length > 0){
+					res = this.apiResponse.find((item) => item.name == this.selected)
+				}
+				return res
+			},
+			getWeekBefore(){
+				return this.moment(this.weekBefore).format("MMM DD, YYYY")
+			},
+			getWeekAfter(){
+				return this.moment(this.weekAfter).format("MMM DD, YYYY")
+			},
+			getWeekDifference(){
+				let a = this.moment(this.getWeekAfter)
+				let b = this.moment(this.getWeekBefore)
+				return a.diff(b, 'days')
+				// return	  - 
+				// return this.getWeekBefore.diff(this.getWeekAfter, 'days')
+			},
+			mapDatesWithData() {
+				let allData = this.getDataForSelectedCity && this.getDataForSelectedCity.bookings ? this.getDataForSelectedCity.bookings : []
+				let allDates = this.getCurrentWeek && this.getCurrentWeek.length > 0 ? this.getCurrentWeek : [];
+				const mappedData = [];
+
+				if(allDates && allDates.length > 0){
+					// console.log('Inside first if');
+					allDates.forEach(date => {
+						const formattedDate = moment(date, 'MMM DD, YYYY').format('YYYY-MM-DD');
+						// const dataForDate = allData.find(item => item.startDate === formattedDate);
+						const bookingsForDate = allData.filter(item => {
+							const startDateFormatted = moment(item.startDate).format('YYYY-MM-DD');
+							return startDateFormatted === formattedDate;
+						});
+						// console.log(formattedDate, bookingsForDate);
+						// if (dataForDate) {
+						// 	mappedData.push({
+						// 		date: date,
+						// 		id: dataForDate.id,
+						// 		pickupReturnStationId: dataForDate.pickupReturnStationId,
+						// 		customerName: dataForDate.customerName,
+						// 		startDate: dataForDate.startDate,
+						// 		endDate: dataForDate.endDate
+						// 	});
+						// }
+						mappedData.push({
+							date: date,
+							bookings: bookingsForDate && bookingsForDate.length > 0 ? bookingsForDate : []
+						});
+					});
+				}
+
+				return mappedData;
+			}
+		},
+		methods: {
+			handleNavigation(type){
+				this.closeDetailView();
+				if(type == 'left'){
+					console.timeLog()
+					this.weekBefore = moment(this.weekBefore).subtract(6, 'days')
+					this.weekAfter = moment(this.weekAfter).subtract(6, 'days')
+				} else if(type == 'right'){
+					this.weekBefore = moment(this.weekBefore).add(6, 'days')
+					this.weekAfter = moment(this.weekAfter).add(6, 'days')
+				}
+			},
+			async viewDetails(item){
+				this.showDetailView = true
+				let payload = {
+					stationId: item.pickupReturnStationId,
+					bookingId: item.id
+				}
+				let res = await this.$store.dispatch("api/GET_INDIVIDUAL_ACCOUNT_INFO", payload)
+			},
+			closeDetailView(){
+				this.showDetailView = false
+			}
+		}
+	}
+</script>
+
+<style scoped>
+	.basic-grid {
+		width: 170px;
+		height: 170px;
+		border: 1px solid black;
+	}
+	table {
+		font-family: arial, sans-serif;
+		border-collapse: collapse;
+		width: 100%;
+	  }
+	  
+	  td, th {
+		border: 1px solid #dddddd;
+		text-align: left;
+		padding: 8px;
+	  }
+	  
+	  tr:nth-child(even) {
+		background-color: #dddddd;
+	  }
+</style>
+  
