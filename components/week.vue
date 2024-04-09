@@ -29,37 +29,13 @@
 		>
 			Showing data from {{ getWeekBefore }} to {{ getWeekAfter }}
 		</p>
-		<!-- <div
-			v-if="getWeekDifference"
-			class="w-full grid grid-cols-7 gap-4 mt-20"
-		>
-			<div
-				class="basic-grid flex justify-center p-2"
-				v-for="(item, key) in getCurrentWeek"
-				:key="key"
-			>
-				<p 
-					class="text-center font-mono font-normal text-12 text-charcoal-gray leading-tight tracking-normal antialiased"
-				>
-					{{ moment(item).format("MMM DD, YYYY") }}
-				</p>
-
-				<div v-if="selected">
-
-				</div>
-				<div v-else>
-
-				</div>
-				
-			</div>
-		</div> -->
 
 		<div
 			v-if="getWeekDifference"
 			class="w-full grid grid-cols-7 gap-4 mt-20"
 		>
 			<div
-				class="basic-grid p-2"
+				class="basic-grid px-1 py-2"
 				v-for="(item, key) in mapDatesWithData"
 				:key="key"
 			>
@@ -78,10 +54,10 @@
 					>
 						<p
 							@click="viewDetails(item)"
-							class="cursor-pointer text-center font-mono font-normal text-12 text-blue-900 leading-tight tracking-normal antialiased"
+							class="cursor-pointer text-center font-mono font-normal text-xs text-blue-900 leading-tight tracking-normal antialiased"
 							:class="key > 0 ? 'mt-1' : ''"
 						>
-							{{ item.customerName }}
+							{{ item.type + item.customerName }}
 						</p>
 					</div>
 				</div>
@@ -156,12 +132,7 @@
 		},
 		mounted(){
 			let dt = new Date();
-			// console.log('dt', dt.getDate())
-			// this.weekBefore = new Date('2021-07-11T00:00:00.402Z')
 			this.weekBefore = new moment('2021-03-13T00:00:00.402Z')
-			// console.log('weekBefore', this.weekBefore)
-			// this.weekBefore = moment(this.weekBefore).format('MMMM Do YYYY');
-			// this.weekAfter = new Date('2021-07-17T00:00:00.402Z')
 			this.weekAfter = new moment('2021-03-19T00:00:00.402Z')
 		},
 		computed: {
@@ -170,15 +141,6 @@
 				individualResponse: state => state.api.individualResponse,
 			}),
 			getCurrentWeek(data){
-				// let res = []
-				// let weekStart = new moment(this.weekBefore);
-				// weekStart.set(this.moment.toDate(this.weekBefore) - this.weekBefore.day());
-				// return Array.from( { length: 7 }, (v,k) => { 
-				// 	const dt = new moment(weekStart);
-				// 	dt.set(weekStart.getDate() + k);
-				// 	return dt;
-				// 	// return this.moment(dt).format("MMM DD, YYYY");
-				// })
 				let dateformat = "MMM DD, YYYY";
 				let date = this.weekBefore ? moment(this.weekBefore,dateformat) : moment(), weeklength=7, result=[];
 				date = date.startOf("week")
@@ -215,8 +177,6 @@
 				let a = this.moment(this.getWeekAfter)
 				let b = this.moment(this.getWeekBefore)
 				return a.diff(b, 'days')
-				// return	  - 
-				// return this.getWeekBefore.diff(this.getWeekAfter, 'days')
 			},
 			mapDatesWithData() {
 				let allData = this.getDataForSelectedCity && this.getDataForSelectedCity.bookings ? this.getDataForSelectedCity.bookings : []
@@ -224,28 +184,38 @@
 				const mappedData = [];
 
 				if(allDates && allDates.length > 0){
-					// console.log('Inside first if');
+
+					//Mapping start and end date in the week array.
 					allDates.forEach(date => {
 						const formattedDate = moment(date, 'MMM DD, YYYY').format('YYYY-MM-DD');
-						// const dataForDate = allData.find(item => item.startDate === formattedDate);
+        
 						const bookingsForDate = allData.filter(item => {
 							const startDateFormatted = moment(item.startDate).format('YYYY-MM-DD');
-							return startDateFormatted === formattedDate;
+							const endDateFormatted = moment(item.endDate).format('YYYY-MM-DD');
+							return startDateFormatted === formattedDate || endDateFormatted === formattedDate;
+						}).map(item => {
+							const startDateFormatted = moment(item.startDate).format('YYYY-MM-DD');
+							const endDateFormatted = moment(item.endDate).format('YYYY-MM-DD');
+							let type = "";
+							if (startDateFormatted === formattedDate) {
+								type = "Pickup: ";
+							}
+							if (endDateFormatted === formattedDate) {
+								type = "Drop: ";
+							}
+							return {
+								id: item.id,
+								pickupReturnStationId: item.pickupReturnStationId,
+								customerName: item.customerName,
+								startDate: item.startDate,
+								endDate: item.endDate,
+								type: type
+							};
 						});
-						// console.log(formattedDate, bookingsForDate);
-						// if (dataForDate) {
-						// 	mappedData.push({
-						// 		date: date,
-						// 		id: dataForDate.id,
-						// 		pickupReturnStationId: dataForDate.pickupReturnStationId,
-						// 		customerName: dataForDate.customerName,
-						// 		startDate: dataForDate.startDate,
-						// 		endDate: dataForDate.endDate
-						// 	});
-						// }
+
 						mappedData.push({
 							date: date,
-							bookings: bookingsForDate && bookingsForDate.length > 0 ? bookingsForDate : []
+							bookings: bookingsForDate
 						});
 					});
 				}
@@ -254,6 +224,7 @@
 			}
 		},
 		methods: {
+			//Function to navigate between weeks
 			handleNavigation(type){
 				this.closeDetailView();
 				if(type == 'left'){
@@ -265,6 +236,7 @@
 					this.weekAfter = moment(this.weekAfter).add(6, 'days')
 				}
 			},
+			//Function to view further details of a particular booking
 			async viewDetails(item){
 				this.showDetailView = true
 				let payload = {
@@ -273,6 +245,7 @@
 				}
 				let res = await this.$store.dispatch("api/GET_INDIVIDUAL_ACCOUNT_INFO", payload)
 			},
+			//Function to close the detail view section
 			closeDetailView(){
 				this.showDetailView = false
 			}
