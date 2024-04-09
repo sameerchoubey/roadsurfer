@@ -7,7 +7,7 @@
 				@click="handleNavigation('left')"
 				class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded p-2"
 			>
-				Previous
+				Previous Week
 			</button>
 
 			<select v-model="selected">
@@ -19,7 +19,7 @@
 				@click="handleNavigation('right')"
 				class="bg-red-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded p-2"
 			>
-				Next
+				Next Week
 			</button>
 		</div>
 
